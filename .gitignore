@@ -361,6 +361,8 @@ ASALocalRun/
 # Local History for Visual Studio
 .localhistory/
 
+# IntelliJ files
+.idea/
 # Visual Studio History (VSHistory) files
 .vshistory/
 
@@ -396,3 +398,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+KnowledgeClipContextMenu.reg

@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\DiffClip]
+@="Copy diff to clipboard"
+
+[HKEY_CLASSES_ROOT\Directory\shell\DiffClip\command]
+@="\"C:\\development\\DiffClip\\src\\bin\\Debug\\net8.0\\DiffClip.exe\" \"%V\""
