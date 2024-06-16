@@ -3,62 +3,72 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
+using CommandLine;
 using DiffClip;
 using Newtonsoft.Json.Linq;
 using LibGit2Sharp;  
-
 namespace DiffClip
 {
+    public class Options
+    {
+        [Value(0, MetaName = "directoryPath", Required = true, HelpText = "The path to the directory within the repository to analyse.")]
+        public string DirectoryPath { get; set; }
+
+        [Option('s', "summarise", Required = false, HelpText = "Create a summary of the diff and copy to clipboard.")]
+        public bool CreateSummary { get; set; }
+    }
+    
     static class Program
     {
         [STAThread]
         static void Main(string[] args)
+        {
+            Parser.Default.ParseArguments<Options>(args)
+                .WithParsed(RunDiffClip)
+                .WithNotParsed(HandleParseError);
+        }
+
+        private static void RunDiffClip(Options opts)
         {
             if (!AttachConsole(-1))
             {
                 FreeConsole();
             }
 
-            RunDiffClip(args);
-        }
-
-        private static void RunDiffClip(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                ShowMessageBox("Usage: DiffClip <directoryPath>", "Error", 0x00000010);
-                return;
-            }
-
-            string directoryPath = args[0];
-            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-
-            if (!File.Exists(configFilePath))
-            {
-                ShowMessageBox("Configuration file 'config.json' not found.", "Error", 0x00000010);
-                return;
-            }
-
             try
             {
-                // Verify that the directory exists
-                if (!Directory.Exists(directoryPath))
+                if (!Directory.Exists(opts.DirectoryPath))
                 {
-                    ShowMessageBox($"The directory '{directoryPath}' does not exist.", "Error", 0x00000010);
+                    ShowMessageBox($"The directory '{opts.DirectoryPath}' does not exist.", "Error", 0x00000010);
                     return;
                 }
 
-                // Generate the Git diff and copy to clipboard
-                string gitDiff = GenerateGitDiff(directoryPath);
-                gitDiff.CopyToClipboard();
-                ShowMessageBox("Git diff has been copied to the clipboard.", "Success", 0x00000040);
+                var gitDiff = GenerateGitDiff(opts.DirectoryPath);
+
+                if (opts.CreateSummary)
+                {
+                    string summary = SummarizeDiff(gitDiff);
+                    summary.CopyToClipboard();
+                    ShowMessageBox("Diff summary copied to clipboard.", "Success", 0x00000040);
+                }
+                else
+                {
+                    gitDiff.CopyToClipboard();
+                    ShowMessageBox("Git diff has been copied to the clipboard.", "Success", 0x00000040);
+                }
             }
             catch (Exception ex)
             {
                 ShowMessageBox($"An error occurred: {ex.Message}", "Error", 0x00000010);
             }
         }
-
+        private static void HandleParseError(IEnumerable<Error> errs)
+        {
+            foreach (var err in errs)
+            {
+                Console.Error.WriteLine(err.ToString());
+            }
+        }
         private static string GenerateGitDiff(string repoPath)
         {
             using (var repo = new Repository(repoPath))
@@ -111,6 +121,12 @@ namespace DiffClip
             sb.AppendLine("===== END OF GIT DIFF =====");
         }
 
+        private static string SummarizeDiff(string diff)
+        {
+            // Placeholder for real summarization logic
+            return "Summary of the changes: " + diff.Substring(0, Math.Min(100, diff.Length)) + "...";
+        }
+        
         private static void ShowMessageBox(string text, string caption, uint type)
         {
             MessageBox(IntPtr.Zero, text, caption, type);
