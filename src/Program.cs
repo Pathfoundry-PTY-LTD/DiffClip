@@ -6,7 +6,10 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using DiffClip;
 using Newtonsoft.Json.Linq;
-using LibGit2Sharp;  
+using LibGit2Sharp;
+using OpenAI_API;
+using OpenAI_API.Models;
+
 namespace DiffClip
 {
     public class Options
@@ -24,11 +27,11 @@ namespace DiffClip
         static void Main(string[] args)
         {
             Parser.Default.ParseArguments<Options>(args)
-                .WithParsed(RunDiffClip)
-                .WithNotParsed(HandleParseError);
+                .WithNotParsed(HandleParseError)
+                .WithParsedAsync(RunDiffClip);
         }
 
-        private static void RunDiffClip(Options opts)
+        private static async Task RunDiffClip(Options opts)
         {
             if (!AttachConsole(-1))
             {
@@ -47,7 +50,7 @@ namespace DiffClip
 
                 if (opts.CreateSummary)
                 {
-                    string summary = SummarizeDiff(gitDiff);
+                    var summary = await SummarizeDiff(gitDiff);
                     summary.CopyToClipboard();
                     ShowMessageBox("Diff summary copied to clipboard.", "Success", 0x00000040);
                 }
@@ -89,7 +92,6 @@ namespace DiffClip
 
         private static void DumpFileDiffs(Patch changes, StringBuilder sb, string commitHash)
         {
-            
             sb.AppendLine($"Diff against commit: {commitHash}");  // Display the commit hash
             sb.AppendLine($"Added lines: {changes.LinesAdded}");
             sb.AppendLine($"Deleted lines: {changes.LinesDeleted}");
@@ -122,10 +124,26 @@ namespace DiffClip
             }
         }
 
-        private static string SummarizeDiff(string diff)
+        private static async Task<string> SummarizeDiff(string gitDiff)
         {
-            // Placeholder for real summarization logic
-            return "Summary of the changes: " + diff.Substring(0, Math.Min(100, diff.Length)) + "...";
+            string apiKey = "Your Open API Key Goes Here"; // TODO: Move to configuration
+            
+            // Initialize the OpenAI API client
+            var api = new OpenAIAPI(apiKey);
+
+            // Create a new chat conversation
+            var chat = api.Chat.CreateConversation();
+            chat.Model = Model.ChatGPTTurbo;
+            chat.RequestParameters.Temperature = 0;
+
+            // Add system instructions
+            chat.AppendSystemMessage("You are a helpful assistant whose role is to summarise git diffs and turn them into meaningful commit messages. Write with brevity, clarity, and professionalism.");
+
+            // Add user input
+            var prompt = $"Please summarize the following git changes into a concise commit message:\n\n{gitDiff}";
+            chat.AppendUserInput(prompt);
+            
+            return await chat.GetResponseFromChatbotAsync();
         }
         
         private static void ShowMessageBox(string text, string caption, uint type)
