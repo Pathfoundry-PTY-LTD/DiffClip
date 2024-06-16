@@ -23,6 +23,10 @@ namespace DiffClip
     
     static class Program
     {
+        // Message Box Constants
+        private const uint MB_ICONERROR = 0x00000010;
+        private const uint MB_ICONINFORMATION = 0x00000040;
+        
         [STAThread]
         static async Task Main(string[] args)
         {
@@ -39,9 +43,16 @@ namespace DiffClip
 
             try
             {
+                // Check if the directory is part of a Git repository
+                if (!Repository.IsValid(opts.DirectoryPath))
+                {
+                    ShowMessageBox("DiffClip only works on git repositories.", "DiffClip Error", MB_ICONERROR); 
+                    return;
+                }
+                
                 if (!Directory.Exists(opts.DirectoryPath))
                 {
-                    ShowMessageBox($"The directory '{opts.DirectoryPath}' does not exist.", "Error", 0x00000010);
+                    ShowMessageBox($"The directory '{opts.DirectoryPath}' does not exist.", "Error", MB_ICONERROR);
                     return;
                 }
 
@@ -51,17 +62,17 @@ namespace DiffClip
                 {
                     var summary = await SummarizeDiff(gitDiff);
                     summary.CopyToClipboard();
-                    ShowMessageBox("Diff summary copied to clipboard.", "Success", 0x00000040);
+                    ShowMessageBox("Diff summary copied to clipboard.", "Success", MB_ICONINFORMATION);
                 }
                 else
                 {
                     gitDiff.CopyToClipboard();
-                    ShowMessageBox("Git diff has been copied to the clipboard.", "Success", 0x00000040);
+                    ShowMessageBox("Git diff has been copied to the clipboard.", "Success", MB_ICONINFORMATION);
                 }
             }
             catch (Exception ex)
             {
-                ShowMessageBox($"An error occurred: {ex.Message}", "Error", 0x00000010);
+                ShowMessageBox($"An error occurred: {ex.Message}", "Error", MB_ICONERROR);
             }
         }
         private static void HandleParseError(IEnumerable<Error> errs)
