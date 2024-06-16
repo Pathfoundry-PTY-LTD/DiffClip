@@ -126,7 +126,7 @@ namespace DiffClip
 
         private static async Task<string> SummarizeDiff(string gitDiff)
         {
-            string apiKey = "Your Open API Key Goes Here"; // TODO: Move to configuration
+            var apiKey = LoadApiKey();
             
             // Initialize the OpenAI API client
             var api = new OpenAIAPI(apiKey);
@@ -140,12 +140,19 @@ namespace DiffClip
             chat.AppendSystemMessage("You are a helpful assistant whose role is to summarise git diffs and turn them into meaningful commit messages. Write with brevity, clarity, and professionalism.");
 
             // Add user input
-            var prompt = $"Please summarize the following git changes into a concise commit message:\n\n{gitDiff}";
+            var prompt = $"Please summarise the following git changes into a concise commit message:\n\n{gitDiff}";
             chat.AppendUserInput(prompt);
             
             return await chat.GetResponseFromChatbotAsync();
         }
-        
+        private static string LoadApiKey()
+        {
+            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            var configText = File.ReadAllText(configPath);
+            var config = JObject.Parse(configText);
+            
+            return config["OpenAIKey"]?.ToString() ?? string.Empty;
+        }
         private static void ShowMessageBox(string text, string caption, uint type)
         {
             MessageBox(IntPtr.Zero, text, caption, type);
