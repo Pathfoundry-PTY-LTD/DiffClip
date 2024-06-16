@@ -31,6 +31,12 @@ echo @="Copy diff to clipboard"
 echo.
 echo [HKEY_CLASSES_ROOT\Directory\shell\DiffClip\command]
 echo @="\"%EXE_PATH_ESCAPED%\" \"%%V\""
+echo.
+echo [HKEY_CLASSES_ROOT\Directory\shell\DiffClipCommitMessage]
+echo @="Copy commit message to clipboard"
+echo.
+echo [HKEY_CLASSES_ROOT\Directory\shell\DiffClipCommitMessage\command]
+echo @="\"%EXE_PATH_ESCAPED%\" \"%%V\"" -s 
 ) > "%~dp0\DiffClipContextMenu.reg"
 
 endlocal

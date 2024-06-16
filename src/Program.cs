@@ -24,11 +24,10 @@ namespace DiffClip
     static class Program
     {
         [STAThread]
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Parser.Default.ParseArguments<Options>(args)
-                .WithNotParsed(HandleParseError)
-                .WithParsedAsync(RunDiffClip);
+            await Parser.Default.ParseArguments<Options>(args)
+                .WithNotParsed(HandleParseError).WithParsedAsync(RunDiffClip);
         }
 
         private static async Task RunDiffClip(Options opts)
@@ -137,10 +136,16 @@ namespace DiffClip
             chat.RequestParameters.Temperature = 0;
 
             // Add system instructions
-            chat.AppendSystemMessage("You are a helpful assistant whose role is to summarise git diffs and turn them into meaningful commit messages. Write with brevity, clarity, and professionalism.");
+            chat.AppendSystemMessage("You are a helpful professional software developer whose role is to summarise git diffs and turn them into meaningful commit messages. Write with brevity, clarity, and professionalism, and use correct CRLFs and spacing to make it easy to read.");
 
             // Add user input
-            var prompt = $"Please summarise the following git changes into a concise commit message:\n\n{gitDiff}";
+            string prompt = $@"
+As a highly skilled code reviewer, your role is to generate clear, professional, and detailed commit messages based on git diffs. Each commit message should start with a single-line summary that concisely captures the overall intent of the changes, followed by a blank line and then a more detailed explanation where necessary. The detailed section should explain the reason behind the changes, mention any parts of the system that are affected, and note any additional consequences or benefits that might not be immediately obvious from the code changes.
+
+Here is the git diff you need to summarize:
+{gitDiff}
+
+Please format the commit message with a summary line, followed by a detailed explanation as needed.";
             chat.AppendUserInput(prompt);
             
             return await chat.GetResponseFromChatbotAsync();
