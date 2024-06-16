@@ -77,16 +77,19 @@ namespace DiffClip
                 var changes = repo.Diff.Compare<Patch>(headCommit.Tree, DiffTargets.WorkingDirectory | DiffTargets.Index);
 
                 var sb = new StringBuilder();
+                
                 // Pass the commit hash to DumpFileDiffs
+                sb.AppendLine("===== START OF GIT DIFF =====");
                 DumpFileDiffs(changes, sb, headCommit.Sha);
-        
+                sb.AppendLine("===== END OF GIT DIFF =====");
+                
                 return sb.ToString();
             }
         }
 
         private static void DumpFileDiffs(Patch changes, StringBuilder sb, string commitHash)
         {
-            sb.AppendLine("===== START OF GIT DIFF =====");
+            
             sb.AppendLine($"Diff against commit: {commitHash}");  // Display the commit hash
             sb.AppendLine($"Added lines: {changes.LinesAdded}");
             sb.AppendLine($"Deleted lines: {changes.LinesDeleted}");
@@ -117,8 +120,6 @@ namespace DiffClip
                 sb.AppendLine();
                 sb.AppendLine($"--- End of changes for {p.Path} ---");
             }
-
-            sb.AppendLine("===== END OF GIT DIFF =====");
         }
 
         private static string SummarizeDiff(string diff)
