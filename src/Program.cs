@@ -162,11 +162,15 @@ As a highly skilled code reviewer with decades of experience, your role is to ge
                 $@"changes, mention any parts of the system that are affected, and note any additional consequences or " +
                 $@"benefits that might not be immediately obvious from the code changes.
 
-You also don't need a per-file breakdown since that is already reflected in the git history.
-
 Here is the git diff you need to summarize:{$"{Environment.NewLine}{gitDiff}"}";
             
             chat.AppendUserInput(prompt);
+            
+            // Discard the first prompt since it still needs to be refined
+            await chat.GetResponseFromChatbotAsync();
+            
+            // Refine the output and use that output as the final result
+            chat.AppendUserInput("You also don't need a per-file breakdown since that is already reflected in the git history.");
             
             return await chat.GetResponseFromChatbotAsync();
         }
