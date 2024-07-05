@@ -182,14 +182,27 @@ namespace DiffClip
             chat.AppendSystemMessage("You are a helpful professional software developer whose role is to summarise git diffs and turn them into meaningful commit messages. Write with brevity, clarity, and professionalism, and use correct CRLFs and spacing to make it easy to read.");
 
             // Add user input
-            string prompt = $@"
-As a highly skilled code reviewer, your role is to generate clear, professional, and detailed commit messages based on git diffs. Each commit message should start with a single-line summary that concisely captures the overall intent of the changes, followed by a blank line and then a more detailed explanation where necessary. The detailed section should explain the reason behind the changes, mention any parts of the system that are affected, and note any additional consequences or benefits that might not be immediately obvious from the code changes.
+            var prompt =
+                $@"You are a helpful professional software developer whose role is to summarise git diffs and turn " +
+                $@"them into meaningful commit messages. Write with brevity, clarity, and professionalism, and use correct " +
+                $@"CRLFs and spacing to make it easy to read." + $@"
 
-Here is the git diff you need to summarize:
-{gitDiff}
+As a highly skilled code reviewer with decades of experience, your role is to generate clear, professional, and " +
+                $@"detailed commit messages based on git diffs. Each commit message should start with a single-line " +
+                $@"summary that concisely captures the overall intent of the changes, followed by a blank line and then a " +
+                $@"more detailed explanation where necessary. The detailed section should explain the reason behind the " +
+                $@"changes, mention any parts of the system that are affected, and note any additional consequences or " +
+                $@"benefits that might not be immediately obvious from the code changes.
 
-Please format the commit message with a summary line, followed by a detailed explanation as needed.";
+Here is the git diff you need to summarize:{$"{Environment.NewLine}{gitDiff}"}";
+            
             chat.AppendUserInput(prompt);
+            
+            // Discard the first prompt since it still needs to be refined
+            await chat.GetResponseFromChatbotAsync();
+            
+            // Refine the output and use that output as the final result
+            chat.AppendUserInput("You also don't need a per-file breakdown since that is already reflected in the git history.");
             
             return await chat.GetResponseFromChatbotAsync();
         }
