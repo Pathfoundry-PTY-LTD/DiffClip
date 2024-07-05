@@ -19,6 +19,9 @@ namespace DiffClip
 
         [Option('s', "summarise", Required = false, HelpText = "Create a summary of the diff and copy to clipboard.")]
         public bool CreateSummary { get; set; }
+
+        [Option('b', "branches", Required = false, HelpText = "Compare two branches. Format: sourceBranch..targetBranch")]
+        public string Branches { get; set; }
     }
     
     static class Program
@@ -49,14 +52,14 @@ namespace DiffClip
                     ShowMessageBox("DiffClip only works on git repositories.", "DiffClip Error", MB_ICONERROR); 
                     return;
                 }
-                
+        
                 if (!Directory.Exists(opts.DirectoryPath))
                 {
                     ShowMessageBox($"The directory '{opts.DirectoryPath}' does not exist.", "Error", MB_ICONERROR);
                     return;
                 }
 
-                var gitDiff = GenerateGitDiff(opts.DirectoryPath);
+                var gitDiff = GenerateGitDiff(opts.DirectoryPath, opts.Branches);
 
                 if (opts.CreateSummary)
                 {
@@ -82,33 +85,62 @@ namespace DiffClip
                 Console.Error.WriteLine(err.ToString());
             }
         }
-        private static string GenerateGitDiff(string repoPath)
+        private static string GenerateGitDiff(string repoPath, string branches = null)
         {
             using (var repo = new Repository(repoPath))
             {
-                var headCommit = repo.Head.Tip;  // Get the head commit
-                var changes = repo.Diff.Compare<Patch>(headCommit.Tree, DiffTargets.WorkingDirectory | DiffTargets.Index);
+                Patch changes;
+                string sourceSha, targetSha;
+
+                if (string.IsNullOrEmpty(branches))
+                {
+                    // Existing logic for comparing with working directory
+                    var headCommit = repo.Head.Tip;
+                    changes = repo.Diff.Compare<Patch>(headCommit.Tree, DiffTargets.WorkingDirectory | DiffTargets.Index);
+                    sourceSha = headCommit.Sha;
+                    targetSha = "Working Directory";
+                }
+                else
+                {
+                    // New logic for comparing two branches
+                    var branchNames = branches.Split("..");
+                    if (branchNames.Length != 2)
+                    {
+                        throw new ArgumentException("Invalid branch format. Use: sourceBranch..targetBranch");
+                    }
+
+                    var sourceBranch = repo.Branches[branchNames[0]];
+                    var targetBranch = repo.Branches[branchNames[1]];
+
+                    if (sourceBranch == null || targetBranch == null)
+                    {
+                        throw new ArgumentException("One or both specified branches do not exist.");
+                    }
+
+                    changes = repo.Diff.Compare<Patch>(sourceBranch.Tip.Tree, targetBranch.Tip.Tree);
+                    sourceSha = sourceBranch.Tip.Sha;
+                    targetSha = targetBranch.Tip.Sha;
+                }
 
                 var sb = new StringBuilder();
-                
-                // Pass the commit hash to DumpFileDiffs
                 sb.AppendLine("===== START OF GIT DIFF =====");
-                DumpFileDiffs(changes, sb, headCommit.Sha);
+                DumpFileDiffs(changes, sb, sourceSha, targetSha);
                 sb.AppendLine("===== END OF GIT DIFF =====");
-                
+
                 return sb.ToString();
             }
         }
 
-        private static void DumpFileDiffs(Patch changes, StringBuilder sb, string commitHash)
+        private static void DumpFileDiffs(Patch changes, StringBuilder sb, string sourceSha, string targetSha)
         {
-            sb.AppendLine($"Diff against commit: {commitHash}");  // Display the commit hash
+            sb.AppendLine($"Diff from: {sourceSha}");
+            sb.AppendLine($"Diff to: {targetSha}");
             sb.AppendLine($"Added lines: {changes.LinesAdded}");
             sb.AppendLine($"Deleted lines: {changes.LinesDeleted}");
 
             if (changes.LinesAdded == 0 && changes.LinesDeleted == 0)
             {
-                sb.AppendLine("Note: No file changes have been made since the last commit.");
+                sb.AppendLine("Note: No changes detected between the specified commits or branches.");
                 return;
             }
     
